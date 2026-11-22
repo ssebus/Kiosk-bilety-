@@ -1,0 +1,1403 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Kiosk Biletowy i Terminal POS Euro</title>
+  <style>
+    :root {
+      --bg: #0b1120;
+      --card: #111827;
+      --card-2: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --accent: #3b82f6;
+      --accent-2: #2563eb;
+      --success: #22c55e;
+      --warning: #eab308;
+      --danger: #ef4444;
+    }
+
+    * {
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: linear-gradient(145deg, #070b14, #111827);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+      padding: 14px;
+    }
+
+    .app-shell {
+      width: 100%;
+      max-width: 540px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .top-bar {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+    }
+
+    .brand-title {
+      font-size: 1rem;
+      font-weight: 800;
+      letter-spacing: 0.4px;
+    }
+
+    .sync-badge {
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-top: 3px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--success);
+      display: inline-block;
+    }
+
+    .clock-box {
+      background: #060a13;
+      border: 1px solid #2b3b55;
+      border-radius: 14px;
+      padding: 8px 12px;
+      text-align: right;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .clock-time {
+      font-size: 1.15rem;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      color: #38bdf8;
+    }
+
+    .clock-date {
+      font-size: 0.7rem;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 16px;
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+    }
+
+    .section-title {
+      font-size: 0.85rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #cbd5e1;
+      margin: 0 0 12px 0;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+
+    .tile {
+      background: var(--card-2);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 11px 10px;
+      color: var(--text);
+      cursor: pointer;
+      text-align: left;
+      transition: transform 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+      position: relative;
+    }
+
+    .tile:active {
+      transform: scale(0.97);
+    }
+
+    .tile.selected {
+      border-color: var(--accent);
+      background: rgba(59, 130, 246, 0.18);
+      box-shadow: 0 0 0 1px var(--accent);
+    }
+
+    .tile.locked {
+      opacity: 0.55;
+      border-color: rgba(239, 68, 68, 0.5);
+      background: rgba(127, 29, 29, 0.22);
+    }
+
+    .promo-tag {
+      display: inline-block;
+      font-size: 0.65rem;
+      font-weight: 800;
+      background: rgba(234, 179, 8, 0.2);
+      color: #facc15;
+      border: 1px solid rgba(250, 204, 21, 0.5);
+      border-radius: 6px;
+      padding: 2px 6px;
+      margin-top: 4px;
+    }
+
+    .custom-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    input, select {
+      background: #090e1a;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 11px;
+      padding: 9px 11px;
+      font-size: 0.9rem;
+      outline: none;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--accent);
+    }
+
+    .summary-box {
+      background: #080d18;
+      border: 1px solid #2a3a52;
+      border-radius: 16px;
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+
+    .summary-line {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.88rem;
+      margin-bottom: 6px;
+      color: #cbd5e1;
+    }
+
+    .total-price {
+      font-size: 1.5rem;
+      font-weight: 900;
+      color: var(--success);
+      text-align: right;
+      margin-top: 6px;
+    }
+
+    .btn {
+      border: none;
+      border-radius: 13px;
+      padding: 12px 14px;
+      font-size: 0.92rem;
+      font-weight: 700;
+      cursor: pointer;
+      color: white;
+      background: var(--accent);
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn-green {
+      background: linear-gradient(135deg, #16a34a, #15803d);
+    }
+
+    .btn-gray {
+      background: #334155;
+      color: #e2e8f0;
+    }
+
+    .btn-red {
+      background: var(--danger);
+    }
+
+    .btn-disabled {
+      background: #1e293b;
+      color: #64748b;
+      text-decoration: line-through;
+      cursor: not-allowed;
+      opacity: 0.65;
+    }
+
+    /* Animacja szczeliny gotówki */
+    .slot-machine {
+      margin: 14px auto;
+      width: 240px;
+      background: #090e1a;
+      border: 2px solid #475569;
+      border-radius: 16px;
+      padding: 12px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .slot-hole {
+      height: 10px;
+      background: #000;
+      border: 2px solid #94a3b8;
+      border-radius: 6px;
+      margin: 8px auto 12px auto;
+      width: 170px;
+    }
+
+    .bill-anim {
+      width: 130px;
+      height: 56px;
+      margin: 0 auto;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #10b981, #059669);
+      border: 2px solid #a7f3d0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      color: #ecfdf5;
+      animation: insertBill 1.8s infinite ease-in-out;
+    }
+
+    @keyframes insertBill {
+      0% { transform: translateY(22px) scale(1); opacity: 0.3; }
+      50% { transform: translateY(-6px) scale(0.92); opacity: 1; }
+      100% { transform: translateY(-28px) scale(0.75); opacity: 0; }
+    }
+
+    /* Animacja drukowania biletów */
+    .printer-anim-box {
+      margin: 14px auto;
+      width: 240px;
+      background: #090e1a;
+      border: 2px solid #475569;
+      border-radius: 16px;
+      padding: 12px;
+      overflow: hidden;
+    }
+
+    .ticket-eject {
+      background: #f8fafc;
+      color: #0f172a;
+      border-radius: 8px;
+      padding: 8px;
+      font-size: 0.75rem;
+      font-weight: 800;
+      text-align: center;
+      animation: ejectTicket 1.6s infinite ease-in-out;
+    }
+
+    @keyframes ejectTicket {
+      0% { transform: translateY(-24px); opacity: 0.2; }
+      60% { transform: translateY(8px); opacity: 1; }
+      100% { transform: translateY(20px); opacity: 0.4; }
+    }
+
+    .spinner {
+      width: 44px;
+      height: 44px;
+      border: 4px solid rgba(255, 255, 255, 0.15);
+      border-top-color: #38bdf8;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 10px auto;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Modale */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 6, 23, 0.88);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 200;
+      overflow-y: auto;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal-card {
+      width: 100%;
+      max-width: 480px;
+      max-height: 90vh;
+      overflow-y: auto;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      padding: 18px;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.75);
+    }
+
+    .closed-overlay {
+      position: fixed;
+      inset: 68px 0 0 0;
+      background: rgba(7, 11, 20, 0.96);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 150;
+      text-align: center;
+      padding: 24px;
+    }
+
+    .closed-overlay.open {
+      display: flex;
+    }
+
+    canvas.qr-canvas {
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 8px;
+      display: block;
+      margin: 10px auto;
+    }
+
+    .admin-item {
+      background: #0b1222;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Górny pasek z zegarem co do sekundy (5x klik = Panel Admina) -->
+    <div class="top-bar">
+      <div>
+        <div class="brand-title">🎟️ KIOSK BILETOWY &amp; POS EURO</div>
+        <div class="sync-badge">
+          <span class="dot" id="syncDot"></span>
+          <span id="syncStatusText">Synchronizacja aktywna (kiosk-bilety)</span>
+        </div>
+      </div>
+      <div class="clock-box" id="clockBox" title="Kliknij 5 razy, aby otworzyć Panel Admina">
+        <div class="clock-time" id="clockTime">00:00:00</div>
+        <div class="clock-date" id="clockDate">--.--.----</div>
+      </div>
+    </div>
+
+    <!-- Sekcja 1: Wybór biletu -->
+    <div class="section">
+      <h2 class="section-title">1. Wybierz bilet / strefę</h2>
+      <div class="grid-2" id="ticketsGrid"></div>
+    </div>
+
+    <!-- Sekcja 2: Wybór godziny wejścia (co 15 min, blokada po 5 min z wykrzyknikiem !) -->
+    <div class="section">
+      <h2 class="section-title">2. Wybierz godzinę wejścia (co 15 min)</h2>
+      <div style="font-size:0.78rem; color:var(--muted); margin-bottom:10px;">
+        Wybór dostępny do 5 min po pełnym kwadransie. Po upływie 5 min pojawia się blokada (🔒 !) z informacją o utracie czasu godziny.
+      </div>
+      <div class="grid-4" id="slotsGrid"></div>
+    </div>
+
+    <!-- Sekcja 3: Czas pobytu (kafelki + dowolny czas np. 2h 23m = 143 min) -->
+    <div class="section">
+      <h2 class="section-title">3. Czas pobytu (minuty)</h2>
+      <div class="grid-4" id="durationGrid"></div>
+      <div class="custom-row">
+        <label style="font-size:0.8rem; color:var(--muted);">Własny czas (min):</label>
+        <input type="number" id="customMinutesInput" min="1" max="1440" placeholder="np. 143 (2h 23m)" style="width:150px;" />
+        <button class="btn btn-gray" type="button" onclick="applyCustomMinutes()">Ustaw</button>
+      </div>
+    </div>
+
+    <!-- Sekcja 4: Liczba osób -->
+    <div class="section">
+      <h2 class="section-title">4. Liczba osób</h2>
+      <div class="grid-4" id="personsGrid"></div>
+      <div class="custom-row">
+        <label style="font-size:0.8rem; color:var(--muted);">Inna liczba osób:</label>
+        <input type="number" id="customPersonsInput" min="1" max="100" placeholder="np. 6" style="width:120px;" />
+        <button class="btn btn-gray" type="button" onclick="applyCustomPersons()">Ustaw</button>
+      </div>
+    </div>
+
+    <!-- Podsumowanie i wybór płatności -->
+    <div class="section">
+      <h2 class="section-title">5. Podsumowanie i płatność</h2>
+      <div class="summary-box">
+        <div class="summary-line"><span>Bilet:</span><strong id="sumTicket">-</strong></div>
+        <div class="summary-line"><span>Godzina wejścia:</span><strong id="sumSlot">-</strong></div>
+        <div class="summary-line"><span>Czas pobytu:</span><strong id="sumDuration">-</strong></div>
+        <div class="summary-line"><span>Liczba osób:</span><strong id="sumPersons">-</strong></div>
+        <div class="summary-line"><span>Promocja:</span><strong id="sumPromo">Brak</strong></div>
+        <div class="total-price" id="sumTotal">0,00 €</div>
+      </div>
+
+      <div class="grid-2">
+        <button class="btn btn-green" id="btnPayCash" type="button" onclick="openCashPayment()">💵 Gotówka</button>
+        <button class="btn" id="btnPayCard" type="button" onclick="openCardPayment()">📶 Zbliżeniowo (NFC)</button>
+      </div>
+      <button class="btn btn-gray" type="button" style="width:100%; margin-top:8px;" onclick="resetSelection(true)">Wyczyść wybór</button>
+    </div>
+  </div>
+
+  <!-- Nakładka: Kiosk zamknięty -->
+  <div class="closed-overlay" id="closedOverlay">
+    <div style="font-size:3rem; margin-bottom:10px;">⛔</div>
+    <h2 style="margin:0 0 8px 0;">KIOSK ZAMKNIĘTY</h2>
+    <p style="color:var(--muted); max-width:340px;">Sprzedaż biletów jest tymczasowo wstrzymana przez administratora.</p>
+  </div>
+
+  <!-- Modal ostrzeżenia przy zablokowanej godzinie (!) -->
+  <div class="modal-backdrop" id="lockedSlotModal">
+    <div class="modal-card">
+      <h3 style="margin-top:0; color:#facc15;">⚠️ Uwaga! Ten przedział godzinowy już minął</h3>
+      <p id="lockedSlotMessage" style="color:#e2e8f0; font-size:0.9rem; line-height:1.45;"></p>
+      <div class="grid-2" style="margin-top:14px;">
+        <button class="btn btn-gray" type="button" onclick="closeModal('lockedSlotModal')">Anuluj</button>
+        <button class="btn" type="button" id="confirmLockedSlotBtn">Wybierz mimo to</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal płatności gotówką (szczelina + animacja + oczekiwanie na potwierdzenie w panelu admina) -->
+  <div class="modal-backdrop" id="cashModal">
+    <div class="modal-card" style="text-align:center;">
+      <h3 style="margin-top:0;">💵 Płatność gotówką</h3>
+      <p style="color:var(--muted); font-size:0.88rem; margin:4px 0;">
+        Do zapłaty: <strong id="cashAmountLabel" style="color:#22c55e;">0,00 €</strong>
+      </p>
+      <p style="font-size:0.85rem; color:#cbd5e1;">Wsuń banknoty lub monety do szczeliny.</p>
+
+      <div class="slot-machine">
+        <div style="font-size:0.7rem; color:#94a3b8; font-weight:700;">SZCZELINA NA GOTÓWKĘ</div>
+        <div class="slot-hole"></div>
+        <div class="bill-anim">EURO €</div>
+      </div>
+
+      <div id="cashWaitingArea">
+        <div class="spinner"></div>
+        <div style="font-size:0.85rem; color:#38bdf8; font-weight:700;">
+          Oczekiwanie na potwierdzenie w Panelu Admina...
+        </div>
+      </div>
+
+      <div id="cashApprovedArea" style="display:none; margin:12px 0;">
+        <div style="font-size:2.4rem; color:#22c55e; font-weight:900;">✓</div>
+        <div style="font-weight:800; color:#22c55e;">Płatność gotówką zatwierdzona!</div>
+      </div>
+
+      <button class="btn btn-red" type="button" style="width:100%; margin-top:12px;" onclick="cancelTransaction()">Anuluj płatność</button>
+    </div>
+  </div>
+
+  <!-- Modal płatności zbliżeniowej (NFC przez kamerę / symulacja) -->
+  <div class="modal-backdrop" id="cardModal">
+    <div class="modal-card" style="text-align:center;">
+      <h3 style="margin-top:0;">📶 Płatność zbliżeniowa NFC</h3>
+      <p style="color:var(--muted); font-size:0.88rem;">
+        Do zapłaty: <strong id="cardAmountLabel" style="color:#38bdf8;">0,00 €</strong>
+      </p>
+      <p id="nfcStatusText" style="font-size:0.85rem; color:#facc15;">
+        Zbliż kartę / telefon do górnego czytnika lub kamery...
+      </p>
+      <video id="nfcVideo" autoplay playsinline style="display:none;"></video>
+      <canvas id="nfcCanvas" style="display:none;"></canvas>
+
+      <div id="nfcResultBox" style="margin:12px 0; font-weight:800;"></div>
+
+      <div class="grid-2" style="margin-top:10px;">
+        <button class="btn btn-green" type="button" onclick="completeCardSuccess()">Symuluj: Zatwierdź</button>
+        <button class="btn btn-red" type="button" onclick="cancelTransaction()">Anuluj</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal drukowania biletów i gotowego biletu z kodem QR -->
+  <div class="modal-backdrop" id="printModal">
+    <div class="modal-card" style="text-align:center;">
+      <div id="printingStage">
+        <h3 style="margin-top:0;">🖨️ Drukowanie biletów...</h3>
+        <div class="printer-anim-box">
+          <div class="ticket-eject">🎟️ BILET W DRUKU</div>
+        </div>
+        <div class="spinner"></div>
+        <p style="font-size:0.82rem; color:var(--muted);">
+          Potwierdź wydruk na tablecie w Panelu Admina, aby wyświetlić bilet z kodem QR.
+        </p>
+      </div>
+
+      <div id="printedTicketStage" style="display:none;">
+        <div style="font-size:2rem; color:#22c55e; font-weight:900;">✓ BILET WYDRUKOWANY</div>
+        <p style="font-size:0.82rem; color:#cbd5e1; margin:6px 0;">
+          Zapisz sobie kod QR na telefonie lub zeskanuj go przy wejściu.
+        </p>
+        <canvas id="ticketQrCanvas" class="qr-canvas" width="170" height="170"></canvas>
+        <div id="ticketDetailsBox" style="background:#080d18; border:1px solid var(--border); border-radius:12px; padding:10px; font-size:0.82rem; text-align:left; margin-bottom:10px;"></div>
+        <div class="grid-2">
+          <button class="btn btn-gray" type="button" onclick="downloadQrPng()">💾 Zapisz QR</button>
+          <button class="btn btn-green" type="button" onclick="finishAndReset()">Zakończ</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal bezczynności (30s pytanie -> 10s odliczanie) -->
+  <div class="modal-backdrop" id="idleModal">
+    <div class="modal-card" style="text-align:center;">
+      <h3 style="margin-top:0;">⏳ Czy jesteś tu dalej?</h3>
+      <p style="color:var(--muted); font-size:0.88rem;">
+        Za <strong id="idleCountdown" style="color:#facc15;">10</strong> s wybór zostanie wyczyszczony.
+      </p>
+      <div class="grid-2" style="margin-top:12px;">
+        <button class="btn btn-green" type="button" onclick="stayActive()">Jestem</button>
+        <button class="btn btn-red" type="button" onclick="resetSelection(true)">Wyjdź</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal logowania do Panelu Admina -->
+  <div class="modal-backdrop" id="adminLoginModal">
+    <div class="modal-card">
+      <h3 style="margin-top:0;">🔐 Panel Admina</h3>
+      <p style="font-size:0.82rem; color:var(--muted);">Wpisz hasło administratora (domyślnie: <code>1234</code>):</p>
+      <input type="password" id="adminPinInput" placeholder="Hasło" style="width:100%; margin-bottom:10px;" />
+      <div class="grid-2">
+        <button class="btn btn-gray" type="button" onclick="closeModal('adminLoginModal')">Anuluj</button>
+        <button class="btn" type="button" onclick="verifyAdminLogin()">Wejdź</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pełny Panel Admina (sterowanie na żywo + bilety + promocje) -->
+  <div class="modal-backdrop" id="adminPanelModal">
+    <div class="modal-card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <h3 style="margin:0;">🛠️ Panel Admina</h3>
+        <button class="btn btn-gray" type="button" onclick="closeModal('adminPanelModal')">Zamknij</button>
+      </div>
+
+      <!-- Sterowanie kioskiem i płatnościami na żywo -->
+      <div class="section" style="padding:12px; margin-bottom:12px;">
+        <div class="section-title">Sterowanie kioskiem i transakcją na żywo</div>
+        <div class="grid-2" style="margin-bottom:8px;">
+          <button class="btn btn-green" type="button" onclick="setKioskClosed(false)">🟢 Kiosk Otwarty</button>
+          <button class="btn btn-red" type="button" onclick="setKioskClosed(true)">🔴 Kiosk Zamknięty</button>
+        </div>
+        <div class="grid-2" style="margin-bottom:10px;">
+          <button class="btn" type="button" onclick="setCashOnlyMode(false)">Karta + Gotówka</button>
+          <button class="btn btn-gray" type="button" onclick="setCashOnlyMode(true)">Tylko Gotówka</button>
+        </div>
+
+        <div id="liveOrderBox" style="background:#080d18; border:1px solid var(--border); border-radius:12px; padding:10px; font-size:0.8rem; margin-bottom:10px;">
+          Brak aktywnej transakcji.
+        </div>
+
+        <div class="grid-2" style="margin-bottom:8px;">
+          <button class="btn btn-green" type="button" onclick="adminApproveCash()">✓ Potwierdź gotówkę</button>
+          <button class="btn" type="button" onclick="adminConfirmPrint()">✓ Potwierdź wydruk QR</button>
+        </div>
+        <canvas id="adminQrPreview" class="qr-canvas" width="130" height="130"></canvas>
+      </div>
+
+      <!-- Promocje -->
+      <div class="section" style="padding:12px; margin-bottom:12px;">
+        <div class="section-title">Promocja (rabat %)</div>
+        <div class="custom-row">
+          <input type="text" id="promoLabelInput" placeholder="Nazwa promocji (np. Happy Hour)" style="flex:1;" />
+          <input type="number" id="promoPercentInput" min="0" max="90" placeholder="%" style="width:76px;" />
+          <button class="btn" type="button" onclick="savePromo()">Zapisz</button>
+        </div>
+      </div>
+
+      <!-- Dodawanie i usuwanie biletów -->
+      <div class="section" style="padding:12px;">
+        <div class="section-title">Bilety (dodawanie i usuwanie)</div>
+        <div class="custom-row">
+          <input type="text" id="newTicketName" placeholder="Nazwa biletu" style="flex:1;" />
+          <input type="number" id="newTicketPrice" min="0" step="0.1" placeholder="Cena/h €" style="width:95px;" />
+          <button class="btn btn-green" type="button" onclick="addTicket()">+ Dodaj</button>
+        </div>
+        <div id="adminTicketsList" style="margin-top:10px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase SDK (zgodny z Twoim projektem kiosk-bilety) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-app.js";
+    import { getDatabase, ref, set, onValue, update } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBMii4G1q0Shek6BCrBrGh824IHTYfjjYo",
+      authDomain: "kiosk-bilety.firebaseapp.com",
+      databaseURL: "https://kiosk-bilety-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "kiosk-bilety",
+      storageBucket: "kiosk-bilety.firebasestorage.app",
+      messagingSenderId: "668036929126",
+      appId: "1:668036929126:web:abd9f9391a611d8435bfa7",
+      measurementId: "G-BPZYNEQXHK"
+    };
+
+    const STORAGE_KEY = "kiosk_bilety_state_v1";
+    const ADMIN_PIN = "1234";
+
+    const defaultState = {
+      closed: false,
+      cashOnly: false,
+      promo: { label: "", percent: 0 },
+      tickets: [
+        { id: "t-normal", name: "Bilet Normalny", pricePerHour: 12.0 },
+        { id: "t-ulgowy", name: "Bilet Ulgowy", pricePerHour: 8.0 },
+        { id: "t-rodzinny", name: "Bilet Rodzinny", pricePerHour: 24.0 },
+        { id: "t-vip", name: "Strefa VIP", pricePerHour: 20.0 }
+      ],
+      liveOrder: {
+        active: false,
+        method: null,          // "cash" | "card"
+        cashApproved: false,
+        printing: false,
+        printedReady: false,
+        summaryText: "",
+        totalEur: 0,
+        ticketCode: ""
+      }
+    };
+
+    let state = loadLocalState();
+    let selectedTicketId = state.tickets[0]?.id || null;
+    let selectedSlot = null;
+    let selectedMinutes = 30;
+    let selectedPersons = 1;
+    let pendingLockedSlot = null;
+
+    // Bezczynność: 30s do pytania, 10s odliczania
+    const IDLE_PROMPT_MS = 30000;
+    let idlePromptTimer = null;
+    let idleCountdownTimer = null;
+    let idleSecondsLeft = 10;
+
+    // 5 kliknięć w zegar otwiera admina
+    let clockClicks = 0;
+    let clockClickTimer = null;
+
+    // Kamera NFC
+    let nfcStream = null;
+    let nfcScanInterval = null;
+    let prevFrame = null;
+
+    // Firebase DB
+    let dbRef = null;
+    try {
+      const app = initializeApp(firebaseConfig);
+      const db = getDatabase(app);
+      dbRef = ref(db, "kioskBiletyState");
+
+      onValue(dbRef, (snap) => {
+        const remote = snap.val();
+        if (remote && Array.isArray(remote.tickets)) {
+          state = {
+            ...defaultState,
+            ...remote,
+            tickets: remote.tickets,
+            promo: remote.promo || { label: "", percent: 0 },
+            liveOrder: { ...defaultState.liveOrder, ...(remote.liveOrder || {}) }
+          };
+          saveLocalState();
+          renderAll();
+          document.getElementById("syncDot").style.background = "#22c55e";
+          document.getElementById("syncStatusText").textContent = "Zsynchronizowano na żywo (Firebase)";
+        }
+      }, () => {
+        document.getElementById("syncDot").style.background = "#eab308";
+        document.getElementById("syncStatusText").textContent = "Tryb lokalny (sprawdź reguły Firebase)";
+      });
+    } catch (e) {
+      document.getElementById("syncDot").style.background = "#eab308";
+      document.getElementById("syncStatusText").textContent = "Tryb lokalny";
+    }
+
+    function loadLocalState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return structuredClone(defaultState);
+        const parsed = JSON.parse(raw);
+        return {
+          ...defaultState,
+          ...parsed,
+          tickets: Array.isArray(parsed.tickets) && parsed.tickets.length ? parsed.tickets : structuredClone(defaultState.tickets),
+          promo: parsed.promo || { label: "", percent: 0 },
+          liveOrder: { ...defaultState.liveOrder, ...(parsed.liveOrder || {}) }
+        };
+      } catch {
+        return structuredClone(defaultState);
+      }
+    }
+
+    function saveLocalState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function commitState() {
+      saveLocalState();
+      renderAll();
+      if (dbRef) {
+        set(dbRef, state).catch(() => {});
+      }
+    }
+
+    function formatEur(val) {
+      return Number(val || 0).toFixed(2).replace(".", ",") + " €";
+    }
+
+    function computeTotalEur(minutes = selectedMinutes, persons = selectedPersons) {
+      const ticket = state.tickets.find(t => t.id === selectedTicketId) || state.tickets[0];
+      if (!ticket) return 0;
+      const base = (ticket.pricePerHour / 60) * Number(minutes || 0) * Number(persons || 1);
+      const pct = Number(state.promo?.percent || 0);
+      if (pct > 0) {
+        return Math.max(0, base * (1 - pct / 100));
+      }
+      return base;
+    }
+
+    function getQuarterSlots() {
+      const now = new Date();
+      const slots = [];
+      const baseHour = now.getHours();
+      const quarters = [0, 15, 30, 45];
+
+      for (let hOffset = 0; hOffset <= 2; hOffset++) {
+        const hour = (baseHour + hOffset) % 24;
+        for (const q of quarters) {
+          const slotStart = new Date(now);
+          slotStart.setHours(hour, q, 0, 0);
+          if (hOffset === 0 && q < now.getMinutes() - 15) continue;
+
+          const diffMinutes = (now - slotStart) / 60000;
+          // Blokada po upływie 5 minut od pełnego kwadransa
+          const isLocked = diffMinutes > 5;
+          const label = `${String(hour).padStart(2, "0")}:${String(q).padStart(2, "0")}`;
+          slots.push({ label, isLocked, slotStart });
+        }
+      }
+      return slots.slice(0, 8);
+    }
+
+    function renderTickets() {
+      const grid = document.getElementById("ticketsGrid");
+      grid.innerHTML = "";
+      if (!state.tickets.some(t => t.id === selectedTicketId) && state.tickets[0]) {
+        selectedTicketId = state.tickets[0].id;
+      }
+
+      state.tickets.forEach(t => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "tile" + (t.id === selectedTicketId ? " selected" : "");
+        const perMin = (t.pricePerHour / 60).toFixed(2).replace(".", ",");
+        btn.innerHTML = `
+          <div style="font-weight:800; font-size:0.92rem;">${escapeHtml(t.name)}</div>
+          <div style="font-size:0.78rem; color:#94a3b8; margin-top:2px;">
+            ${formatEur(t.pricePerHour)} / h (${perMin} €/min)
+          </div>
+          ${state.promo?.percent > 0 ? `<div class="promo-tag">PROMOCJA -${state.promo.percent}%</div>` : ""}
+        `;
+        btn.onclick = () => {
+          selectedTicketId = t.id;
+          renderAll();
+          resetIdleTimer();
+        };
+        grid.appendChild(btn);
+      });
+    }
+
+    function renderSlots() {
+      const grid = document.getElementById("slotsGrid");
+      grid.innerHTML = "";
+      const slots = getQuarterSlots();
+
+      if (!selectedSlot) {
+        const firstOpen = slots.find(s => !s.isLocked) || slots[0];
+        if (firstOpen) selectedSlot = firstOpen.label;
+      }
+
+      slots.forEach(s => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        const isSelected = selectedSlot === s.label;
+        btn.className = "tile" + (isSelected ? " selected" : "") + (s.isLocked ? " locked" : "");
+        btn.style.textAlign = "center";
+        btn.innerHTML = s.isLocked
+          ? `<div style="font-weight:800; font-size:0.88rem;">🔒 ${s.label} !</div><div style="font-size:0.65rem; color:#fca5a5;">Po 5 min</div>`
+          : `<div style="font-weight:800; font-size:0.9rem;">${s.label}</div><div style="font-size:0.65rem; color:#86efac;">Dostępny</div>`;
+
+        btn.onclick = () => {
+          if (s.isLocked) {
+            pendingLockedSlot = s.label;
+            document.getElementById("lockedSlotMessage").textContent =
+              `Godzina ${s.label} minęła ponad 5 minut temu. Jeśli wybierzesz ten przedział, tracisz część czasu bieżącej godziny wejścia.`;
+            openModal("lockedSlotModal");
+          } else {
+            selectedSlot = s.label;
+            renderAll();
+            resetIdleTimer();
+          }
+        };
+        grid.appendChild(btn);
+      });
+    }
+
+    function renderDurations() {
+      const grid = document.getElementById("durationGrid");
+      grid.innerHTML = "";
+      [15, 30, 45, 60].forEach(min => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "tile" + (selectedMinutes === min ? " selected" : "");
+        btn.style.textAlign = "center";
+        btn.innerHTML = `<div style="font-weight:800;">${min} min</div>`;
+        btn.onclick = () => {
+          selectedMinutes = min;
+          renderAll();
+          resetIdleTimer();
+        };
+        grid.appendChild(btn);
+      });
+    }
+
+    function renderPersons() {
+      const grid = document.getElementById("personsGrid");
+      grid.innerHTML = "";
+      [1, 2, 3, 4].forEach(p => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "tile" + (selectedPersons === p ? " selected" : "");
+        btn.style.textAlign = "center";
+        btn.innerHTML = `<div style="font-weight:800;">${p} ${p === 1 ? "osoba" : "osoby"}</div>`;
+        btn.onclick = () => {
+          selectedPersons = p;
+          renderAll();
+          resetIdleTimer();
+        };
+        grid.appendChild(btn);
+      });
+    }
+
+    function renderSummary() {
+      const ticket = state.tickets.find(t => t.id === selectedTicketId) || state.tickets[0];
+      const total = computeTotalEur();
+      document.getElementById("sumTicket").textContent = ticket ? ticket.name : "-";
+      document.getElementById("sumSlot").textContent = selectedSlot || "-";
+      const h = Math.floor(selectedMinutes / 60);
+      const m = selectedMinutes % 60;
+      document.getElementById("sumDuration").textContent = h > 0 ? `${h}h ${m}min (${selectedMinutes} min)` : `${selectedMinutes} min`;
+      document.getElementById("sumPersons").textContent = String(selectedPersons);
+      document.getElementById("sumPromo").textContent =
+        state.promo?.percent > 0 ? `${state.promo.label || "Promocja"} (-${state.promo.percent}%)` : "Brak";
+      document.getElementById("sumTotal").textContent = formatEur(total);
+
+      const cardBtn = document.getElementById("btnPayCard");
+      if (state.cashOnly) {
+        cardBtn.className = "btn btn-disabled";
+        cardBtn.disabled = true;
+        cardBtn.textContent = "🚫 Karta niedostępna";
+      } else {
+        cardBtn.className = "btn";
+        cardBtn.disabled = false;
+        cardBtn.textContent = "📶 Zbliżeniowo (NFC)";
+      }
+
+      document.getElementById("closedOverlay").classList.toggle("open", Boolean(state.closed));
+      syncLiveOrderModals();
+      renderAdminPanel();
+    }
+
+    function syncLiveOrderModals() {
+      const lo = state.liveOrder;
+      if (lo.active && lo.method === "cash") {
+        openModal("cashModal");
+        document.getElementById("cashAmountLabel").textContent = formatEur(lo.totalEur);
+        if (lo.cashApproved) {
+          document.getElementById("cashWaitingArea").style.display = "none";
+          document.getElementById("cashApprovedArea").style.display = "block";
+        } else {
+          document.getElementById("cashWaitingArea").style.display = "block";
+          document.getElementById("cashApprovedArea").style.display = "none";
+        }
+      }
+
+      if (lo.active && lo.printing) {
+        closeModal("cashModal");
+        closeModal("cardModal");
+        openModal("printModal");
+        if (lo.printedReady) {
+          document.getElementById("printingStage").style.display = "none";
+          document.getElementById("printedTicketStage").style.display = "block";
+          document.getElementById("ticketDetailsBox").innerHTML = `
+            <div><strong>Kod biletu:</strong> ${escapeHtml(lo.ticketCode)}</div>
+            <div><strong>Szczegóły:</strong> ${escapeHtml(lo.summaryText)}</div>
+            <div><strong>Kwota:</strong> ${formatEur(lo.totalEur)}</div>
+          `;
+          drawQrCode("ticketQrCanvas", `${lo.ticketCode}|${lo.summaryText}|${formatEur(lo.totalEur)}`);
+        } else {
+          document.getElementById("printingStage").style.display = "block";
+          document.getElementById("printedTicketStage").style.display = "none";
+        }
+      }
+    }
+
+    function renderAll() {
+      renderTickets();
+      renderSlots();
+      renderDurations();
+      renderPersons();
+      renderSummary();
+    }
+
+    // Zegar co do sekundy + 5 kliknięć otwiera Panel Admina
+    function updateClock() {
+      const now = new Date();
+      document.getElementById("clockTime").textContent = now.toTimeString().slice(0, 8);
+      document.getElementById("clockDate").textContent = now.toLocaleDateString("pl-PL");
+    }
+
+    document.getElementById("clockBox").addEventListener("click", () => {
+      clockClicks += 1;
+      clearTimeout(clockClickTimer);
+      clockClickTimer = setTimeout(() => { clockClicks = 0; }, 1400);
+      if (clockClicks >= 5) {
+        clockClicks = 0;
+        document.getElementById("adminPinInput").value = "";
+        openModal("adminLoginModal");
+      }
+    });
+
+    window.verifyAdminLogin = function () {
+      const pin = document.getElementById("adminPinInput").value.trim();
+      if (pin === ADMIN_PIN) {
+        closeModal("adminLoginModal");
+        renderAdminPanel();
+        openModal("adminPanelModal");
+      } else {
+        alert("Nieprawidłowe hasło administratora.");
+      }
+    };
+
+    window.applyCustomMinutes = function () {
+      const val = parseInt(document.getElementById("customMinutesInput").value, 10);
+      if (!val || val < 1) return;
+      selectedMinutes = val;
+      renderAll();
+      resetIdleTimer();
+    };
+
+    window.applyCustomPersons = function () {
+      const val = parseInt(document.getElementById("customPersonsInput").value, 10);
+      if (!val || val < 1) return;
+      selectedPersons = val;
+      renderAll();
+      resetIdleTimer();
+    };
+
+    document.getElementById("confirmLockedSlotBtn").addEventListener("click", () => {
+      if (pendingLockedSlot) {
+        selectedSlot = pendingLockedSlot;
+        pendingLockedSlot = null;
+      }
+      closeModal("lockedSlotModal");
+      renderAll();
+      resetIdleTimer();
+    });
+
+    function buildSummaryString() {
+      const ticket = state.tickets.find(t => t.id === selectedTicketId) || state.tickets[0];
+      return `${ticket ? ticket.name : "Bilet"} • ${selectedSlot || "--:--"} • ${selectedMinutes} min • ${selectedPersons} os.`;
+    }
+
+    window.openCashPayment = function () {
+      if (state.closed) return;
+      const total = computeTotalEur();
+      const code = "TKT-" + Math.floor(100000 + Math.random() * 900000);
+      state.liveOrder = {
+        active: true,
+        method: "cash",
+        cashApproved: false,
+        printing: false,
+        printedReady: false,
+        summaryText: buildSummaryString(),
+        totalEur: total,
+        ticketCode: code
+      };
+      commitState();
+      resetIdleTimer();
+    };
+
+    window.openCardPayment = function () {
+      if (state.closed || state.cashOnly) return;
+      const total = computeTotalEur();
+      const code = "TKT-" + Math.floor(100000 + Math.random() * 900000);
+      state.liveOrder = {
+        active: true,
+        method: "card",
+        cashApproved: false,
+        printing: false,
+        printedReady: false,
+        summaryText: buildSummaryString(),
+        totalEur: total,
+        ticketCode: code
+      };
+      commitState();
+      document.getElementById("cardAmountLabel").textContent = formatEur(total);
+      document.getElementById("nfcResultBox").textContent = "";
+      openModal("cardModal");
+      startCameraNfc();
+      resetIdleTimer();
+    };
+
+    async function startCameraNfc() {
+      stopCameraNfc();
+      try {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
+        nfcStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+        const video = document.getElementById("nfcVideo");
+        const canvas = document.getElementById("nfcCanvas");
+        const ctx = canvas.getContext("2d", { willReadFrequently: true });
+        video.srcObject = nfcStream;
+        await video.play();
+        prevFrame = null;
+
+        nfcScanInterval = setInterval(() => {
+          canvas.width = 48;
+          canvas.height = 48;
+          ctx.drawImage(video, 0, 0, 48, 48);
+          const data = ctx.getImageData(0, 0, 48, 48).data;
+          let brightness = 0;
+          for (let i = 0; i < data.length; i += 4) {
+            brightness += (data[i] + data[i + 1] + data[i + 2]) / 3;
+          }
+          brightness /= (data.length / 4);
+
+          if (prevFrame) {
+            let diff = 0;
+            for (let i = 0; i < data.length; i += 16) {
+              diff += Math.abs(data[i] - prevFrame[i]);
+            }
+            diff /= (data.length / 16);
+            if (brightness < 40 && diff > 10) {
+              completeCardSuccess();
+            }
+          }
+          prevFrame = new Uint8ClampedArray(data);
+        }, 200);
+      } catch {
+        // Brak dostępu do kamery — można zatwierdzić przyciskiem
+      }
+    }
+
+    function stopCameraNfc() {
+      clearInterval(nfcScanInterval);
+      nfcScanInterval = null;
+      if (nfcStream) {
+        nfcStream.getTracks().forEach(tr => tr.stop());
+        nfcStream = null;
+      }
+    }
+
+    window.completeCardSuccess = function () {
+      stopCameraNfc();
+      document.getElementById("nfcResultBox").innerHTML = '<span style="color:#22c55e;">✓ Płatność zatwierdzona — przechodzę do druku...</span>';
+      setTimeout(() => {
+        closeModal("cardModal");
+        state.liveOrder.printing = true;
+        state.liveOrder.printedReady = false;
+        commitState();
+      }, 600);
+    };
+
+    window.cancelTransaction = function () {
+      stopCameraNfc();
+      closeModal("cashModal");
+      closeModal("cardModal");
+      closeModal("printModal");
+      state.liveOrder = structuredClone(defaultState.liveOrder);
+      commitState();
+      resetIdleTimer();
+    };
+
+    window.finishAndReset = function () {
+      closeModal("printModal");
+      state.liveOrder = structuredClone(defaultState.liveOrder);
+      commitState();
+      resetSelection(true);
+    };
+
+    // Akcje Panelu Admina
+    window.setKioskClosed = function (closed) {
+      state.closed = closed;
+      commitState();
+    };
+
+    window.setCashOnlyMode = function (cashOnly) {
+      state.cashOnly = cashOnly;
+      commitState();
+    };
+
+    window.adminApproveCash = function () {
+      if (!state.liveOrder.active || state.liveOrder.method !== "cash") {
+        alert("Brak aktywnej płatności gotówką.");
+        return;
+      }
+      state.liveOrder.cashApproved = true;
+      commitState();
+      setTimeout(() => {
+        if (state.liveOrder.active && state.liveOrder.cashApproved) {
+          state.liveOrder.printing = true;
+          state.liveOrder.printedReady = false;
+          commitState();
+        }
+      }, 900);
+    };
+
+    window.adminConfirmPrint = function () {
+      if (!state.liveOrder.active) {
+        alert("Brak aktywnego zamówienia do wydruku.");
+        return;
+      }
+      state.liveOrder.printing = true;
+      state.liveOrder.printedReady = true;
+      commitState();
+    };
+
+    window.savePromo = function () {
+      const label = document.getElementById("promoLabelInput").value.trim();
+      const percent = Math.max(0, Math.min(90, parseFloat(document.getElementById("promoPercentInput").value) || 0));
+      state.promo = { label, percent };
+      commitState();
+    };
+
+    window.addTicket = function () {
+      const name = document.getElementById("newTicketName").value.trim();
+      const pricePerHour = parseFloat(document.getElementById("newTicketPrice").value);
+      if (!name || isNaN(pricePerHour) || pricePerHour < 0) return;
+      state.tickets.push({
+        id: "t-" + Date.now(),
+        name,
+        pricePerHour
+      });
+      document.getElementById("newTicketName").value = "";
+      document.getElementById("newTicketPrice").value = "";
+      commitState();
+    };
+
+    window.deleteTicket = function (id) {
+      if (state.tickets.length <= 1) {
+        alert("Musi pozostać przynajmniej jeden bilet.");
+        return;
+      }
+      state.tickets = state.tickets.filter(t => t.id !== id);
+      if (selectedTicketId === id) {
+        selectedTicketId = state.tickets[0]?.id || null;
+      }
+      commitState();
+    };
+
+    function renderAdminPanel() {
+      const lo = state.liveOrder;
+      document.getElementById("liveOrderBox").innerHTML = lo.active
+        ? `
+          <div><strong>Status:</strong> ${lo.printing ? (lo.printedReady ? "Wydrukowano ✓" : "Drukowanie...") : `Płatność (${lo.method || "-"})`}</div>
+          <div><strong>Bilet:</strong> ${escapeHtml(lo.summaryText)}</div>
+          <div><strong>Kwota:</strong> ${formatEur(lo.totalEur)}</div>
+          <div><strong>Kod:</strong> ${escapeHtml(lo.ticketCode)}</div>
+        `
+        : "Brak aktywnej transakcji.";
+
+      const qrPayload = lo.ticketCode ? `${lo.ticketCode}|${lo.summaryText}|${formatEur(lo.totalEur)}` : "KIOSK-BILETY-READY";
+      drawQrCode("adminQrPreview", qrPayload);
+
+      document.getElementById("promoLabelInput").value = state.promo?.label || "";
+      document.getElementById("promoPercentInput").value = state.promo?.percent || 0;
+
+      const list = document.getElementById("adminTicketsList");
+      list.innerHTML = "";
+      state.tickets.forEach(t => {
+        const row = document.createElement("div");
+        row.className = "admin-item";
+        row.innerHTML = `
+          <div>
+            <strong>${escapeHtml(t.name)}</strong>
+            <div style="font-size:0.75rem; color:var(--muted);">${formatEur(t.pricePerHour)} / h</div>
+          </div>
+          <button class="btn btn-red" type="button" style="padding:6px 10px; font-size:0.78rem;" onclick="deleteTicket('${t.id}')">Usuń</button>
+        `;
+        list.appendChild(row);
+      });
+    }
+
+    // Generowanie czytelnego wzoru QR na canvasie
+    function drawQrCode(canvasId, text) {
+      const canvas = document.getElementById(canvasId);
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      const size = 21;
+      const cell = Math.floor((canvas.width - 16) / size);
+      const offset = Math.floor((canvas.width - cell * size) / 2);
+
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#0f172a";
+
+      let hash = 2166136261;
+      for (let i = 0; i < text.length; i++) {
+        hash ^= text.charCodeAt(i);
+        hash = Math.imul(hash, 16777619);
+      }
+
+      const isFinder = (r, c) =>
+        (r < 7 && c < 7) || (r < 7 && c >= size - 7) || (r >= size - 7 && c < 7);
+
+      const drawFinder = (r0, c0) => {
+        for (let r = 0; r < 7; r++) {
+          for (let c = 0; c < 7; c++) {
+            const border = r === 0 || r === 6 || c === 0 || c === 6;
+            const center = r >= 2 && r <= 4 && c >= 2 && c <= 4;
+            if (border || center) {
+              ctx.fillRect(offset + (c0 + c) * cell, offset + (r0 + r) * cell, cell, cell);
+            }
+          }
+        }
+      };
+
+      drawFinder(0, 0);
+      drawFinder(0, size - 7);
+      drawFinder(size - 7, 0);
+
+      for (let r = 0; r < size; r++) {
+        for (let c = 0; c < size; c++) {
+          if (isFinder(r, c)) continue;
+          const bit = ((hash >>> ((r * size + c) % 31)) ^ (r * 13 + c * 7)) & 1;
+          if (bit === 1) {
+            ctx.fillRect(offset + c * cell, offset + r * cell, cell, cell);
+          }
+        }
+      }
+    }
+
+    window.downloadQrPng = function () {
+      const canvas = document.getElementById("ticketQrCanvas");
+      const link = document.createElement("a");
+      link.download = (state.liveOrder.ticketCode || "bilet-qr") + ".png";
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    };
+
+    // Bezczynność: 30s -> pytanie -> 10s odliczania -> czyszczenie wyboru
+    function resetIdleTimer() {
+      clearTimeout(idlePromptTimer);
+      clearInterval(idleCountdownTimer);
+      closeModal("idleModal");
+      idlePromptTimer = setTimeout(() => {
+        idleSecondsLeft = 10;
+        document.getElementById("idleCountdown").textContent = String(idleSecondsLeft);
+        openModal("idleModal");
+        idleCountdownTimer = setInterval(() => {
+          idleSecondsLeft -= 1;
+          document.getElementById("idleCountdown").textContent = String(idleSecondsLeft);
+          if (idleSecondsLeft <= 0) {
+            clearInterval(idleCountdownTimer);
+            resetSelection(true);
+          }
+        }, 1000);
+      }, IDLE_PROMPT_MS);
+    }
+
+    window.stayActive = function () {
+      resetIdleTimer();
+    };
+
+    window.resetSelection = function (closeModalsToo = false) {
+      clearTimeout(idlePromptTimer);
+      clearInterval(idleCountdownTimer);
+      selectedTicketId = state.tickets[0]?.id || null;
+      selectedSlot = null;
+      selectedMinutes = 30;
+      selectedPersons = 1;
+      document.getElementById("customMinutesInput").value = "";
+      document.getElementById("customPersonsInput").value = "";
+      if (closeModalsToo) {
+        closeModal("idleModal");
+        closeModal("printModal");
+      }
+      renderAll();
+      resetIdleTimer();
+    };
+
+    window.openModal = function (id) {
+      document.getElementById(id).classList.add("open");
+    };
+
+    window.closeModal = function (id) {
+      document.getElementById(id).classList.remove("open");
+    };
+
+    function escapeHtml(str) {
+      return String(str ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    ["pointerdown", "keydown", "touchstart"].forEach(ev => {
+      document.addEventListener(ev, () => {
+        if (!document.getElementById("idleModal").classList.contains("open")) {
+          resetIdleTimer();
+        }
+      }, { passive: true });
+    });
+
+    updateClock();
+    setInterval(updateClock, 1000);
+    setInterval(renderSlots, 15000);
+    renderAll();
+    resetIdleTimer();
+  </script>
+</body>
+</html>
