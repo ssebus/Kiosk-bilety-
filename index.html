@@ -1,0 +1,1241 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kiosk Biletowy — Admin, Skaner QR i Historia (20s)</title>
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+  <style>
+    :root {
+      --bg: #0b1120;
+      --panel: #151e32;
+      --panel-2: #0d1526;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-2: #22c55e;
+      --warn: #f59e0b;
+      --danger: #ef4444;
+      --border: rgba(148, 163, 184, 0.2);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: linear-gradient(160deg, #070c18 0%, #0f172a 55%, #111c33 100%);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .app {
+      max-width: 1140px;
+      margin: 0 auto;
+    }
+
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 14px;
+      background: rgba(21, 30, 50, 0.9);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px 20px;
+      margin-bottom: 18px;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 1.35rem;
+    }
+
+    header p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      background: rgba(56, 189, 248, 0.14);
+      color: var(--accent);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
+
+    .tab-btn {
+      background: rgba(21, 30, 50, 0.85);
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: 10px 16px;
+      border-radius: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .tab-btn.active {
+      background: linear-gradient(135deg, #0284c7, #22c55e);
+      color: #061018;
+      border-color: transparent;
+    }
+
+    .tab-view {
+      display: none;
+    }
+
+    .tab-view.active {
+      display: block;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1.15fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    @media (max-width: 900px) {
+      .grid-2 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .panel {
+      background: rgba(21, 30, 50, 0.9);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+    }
+
+    .panel h2 {
+      margin: 0 0 14px;
+      font-size: 1.1rem;
+    }
+
+    .form-group {
+      margin-bottom: 12px;
+    }
+
+    .row-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    @media (max-width: 560px) {
+      .row-2 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    label {
+      display: block;
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--panel-2);
+      color: var(--text);
+      font-size: 0.94rem;
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    button {
+      cursor: pointer;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 15px;
+      font-size: 0.92rem;
+      font-weight: 600;
+      transition: transform 0.08s ease, opacity 0.15s ease;
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    .btn-primary {
+      width: 100%;
+      background: linear-gradient(135deg, #0284c7, #22c55e);
+      color: #061018;
+      margin-top: 6px;
+    }
+
+    .btn-secondary {
+      background: rgba(148, 163, 184, 0.16);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.16);
+      color: #fca5a5;
+      border: 1px solid rgba(239, 68, 68, 0.35);
+    }
+
+    /* Kamera i skaner QR */
+    .scanner-box {
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+      margin-bottom: 14px;
+    }
+
+    .video-wrap {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      background: #050811;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 12px;
+    }
+
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: none;
+    }
+
+    video.active {
+      display: block;
+    }
+
+    .scanner-reticle {
+      position: absolute;
+      width: 62%;
+      height: 62%;
+      border: 2px dashed rgba(56, 189, 248, 0.85);
+      border-radius: 14px;
+      pointer-events: none;
+      box-shadow: 0 0 0 9999px rgba(2, 6, 23, 0.28);
+    }
+
+    .scanner-placeholder {
+      color: var(--muted);
+      font-size: 0.9rem;
+      text-align: center;
+      padding: 14px;
+    }
+
+    .scanner-controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+
+    .scanner-status {
+      font-size: 0.88rem;
+      color: #cbd5e1;
+      padding: 8px 12px;
+      border-radius: 10px;
+      background: rgba(30, 41, 59, 0.7);
+      border: 1px solid var(--border);
+    }
+
+    .status-pill {
+      display: inline-block;
+      padding: 3px 9px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+
+    .status-valid {
+      background: rgba(34, 197, 94, 0.18);
+      color: #86efac;
+      border: 1px solid rgba(34, 197, 94, 0.4);
+    }
+
+    .status-invalid {
+      background: rgba(239, 68, 68, 0.18);
+      color: #fca5a5;
+      border: 1px solid rgba(239, 68, 68, 0.4);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 9px 10px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+
+    th {
+      color: var(--muted);
+      font-weight: 600;
+      width: 34%;
+    }
+
+    /* Historia biletów */
+    .history-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .tickets-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .ticket-card {
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 15px;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 16px;
+      align-items: center;
+    }
+
+    @media (max-width: 600px) {
+      .ticket-card {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .qr-box {
+      background: #ffffff;
+      padding: 8px;
+      border-radius: 10px;
+      width: 118px;
+      height: 118px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .ticket-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+
+    .ticket-id {
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .ticket-details {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 6px 12px;
+      font-size: 0.86rem;
+      color: #cbd5e1;
+    }
+
+    .ticket-details span strong {
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    .ticket-actions {
+      margin-top: 10px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 36px 16px;
+      color: var(--muted);
+      border: 1px dashed var(--border);
+      border-radius: 12px;
+    }
+
+    /* Modal drukowanego biletu z automatycznym odliczaniem 20s */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 6, 23, 0.84);
+      backdrop-filter: blur(6px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      z-index: 60;
+    }
+
+    .modal-backdrop.active {
+      display: flex;
+    }
+
+    .print-modal {
+      width: 100%;
+      max-width: 530px;
+      background: #0f172a;
+      border: 1px solid rgba(56, 189, 248, 0.45);
+      border-radius: 18px;
+      padding: 22px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7);
+    }
+
+    .print-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .print-header h3 {
+      margin: 0;
+      font-size: 1.15rem;
+    }
+
+    .countdown-pill {
+      background: rgba(56, 189, 248, 0.16);
+      color: var(--accent);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 0.9rem;
+    }
+
+    .progress-track {
+      width: 100%;
+      height: 8px;
+      background: rgba(148, 163, 184, 0.2);
+      border-radius: 999px;
+      overflow: hidden;
+      margin-bottom: 14px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 100%;
+      background: linear-gradient(90deg, #22c55e, #38bdf8);
+      transition: width 0.2s linear;
+    }
+
+    .auto-close-note {
+      font-size: 0.88rem;
+      color: #e2e8f0;
+      background: rgba(30, 41, 59, 0.8);
+      border-left: 3px solid var(--accent-2);
+      padding: 10px 12px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      line-height: 1.45;
+    }
+
+    .printed-paper {
+      background: #ffffff;
+      color: #0f172a;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .printed-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px dashed #94a3b8;
+      padding-bottom: 10px;
+      margin-bottom: 12px;
+      font-weight: 700;
+      font-size: 0.92rem;
+    }
+
+    .printed-body {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 14px;
+      align-items: center;
+    }
+
+    @media (max-width: 480px) {
+      .printed-body {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .printed-qr {
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 6px;
+      background: #ffffff;
+      width: 124px;
+      height: 124px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .printed-fields {
+      font-size: 0.86rem;
+      line-height: 1.5;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .btn-close-manual {
+      background: var(--danger);
+      color: #ffffff;
+      padding: 10px 18px;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <h1>Kiosk Biletowy</h1>
+        <p>Zakup biletów • Panel admina ze skanerem QR • Historia biletów • Auto-zamknięcie 20 s</p>
+      </div>
+      <div class="header-right">
+        <div class="badge" id="headerTicketCount">Kupionych biletów: 0</div>
+      </div>
+    </header>
+
+    <nav class="tabs" aria-label="Nawigacja">
+      <button type="button" class="tab-btn active" data-tab="buyTab">Zakup i wydruk biletu</button>
+      <button type="button" class="tab-btn" data-tab="historyTab">Historia biletów</button>
+      <button type="button" class="tab-btn" data-tab="adminTab">Panel admina i skaner QR</button>
+    </nav>
+
+    <!-- ZAKŁADKA 1: ZAKUP BILETU -->
+    <section id="buyTab" class="tab-view active">
+      <div class="grid-2">
+        <div class="panel">
+          <h2>Kup nowy bilet</h2>
+          <form id="ticketForm">
+            <div class="form-group">
+              <label for="passengerName">Imię i nazwisko pasażera</label>
+              <input type="text" id="passengerName" placeholder="np. Jan Kowalski" required />
+            </div>
+
+            <div class="row-2">
+              <div class="form-group">
+                <label for="passengerEmail">Adres e-mail</label>
+                <input type="email" id="passengerEmail" placeholder="jan@example.com" required />
+              </div>
+              <div class="form-group">
+                <label for="passengerPhone">Telefon</label>
+                <input type="tel" id="passengerPhone" placeholder="+48 600 000 000" required />
+              </div>
+            </div>
+
+            <div class="row-2">
+              <div class="form-group">
+                <label for="fromStop">Skąd</label>
+                <input type="text" id="fromStop" placeholder="np. Remagen Bahnhof" required />
+              </div>
+              <div class="form-group">
+                <label for="toStop">Dokąd</label>
+                <input type="text" id="toStop" placeholder="np. Bad Breisig" required />
+              </div>
+            </div>
+
+            <div class="row-2">
+              <div class="form-group">
+                <label for="ticketType">Rodzaj biletu</label>
+                <select id="ticketType">
+                  <option value="Jednorazowy (12,50 zł)">Jednorazowy (12,50 zł)</option>
+                  <option value="Ulgowy (6,25 zł)">Ulgowy (6,25 zł)</option>
+                  <option value="Dobowy (28,00 zł)">Dobowy (28,00 zł)</option>
+                  <option value="Grupowy (42,00 zł)">Grupowy (42,00 zł)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="passengersCount">Liczba osób</label>
+                <input type="number" id="passengersCount" min="1" max="10" value="1" required />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="paymentMethod">Metoda płatności</label>
+              <select id="paymentMethod">
+                <option value="Karta zbliżeniowa">Karta zbliżeniowa</option>
+                <option value="BLIK">BLIK</option>
+                <option value="Apple Pay / Google Pay">Apple Pay / Google Pay</option>
+                <option value="Gotówka">Gotówka</option>
+              </select>
+            </div>
+
+            <button type="submit" class="btn-primary">Kup i wydrukuj bilet (odliczanie 20 s)</button>
+          </form>
+        </div>
+
+        <div class="panel">
+          <h2>Ostatnio kupione bilety (szybki podgląd)</h2>
+          <p style="color: var(--muted); font-size: 0.9rem; margin-top: 0;">
+            Wszystkie kupione bilety są zapisywane w zakładce <strong>Historia biletów</strong> oraz w pamięci przeglądarki.
+          </p>
+          <div id="recentPreviewList" class="tickets-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ZAKŁADKA 2: PEŁNA HISTORIA WSZYSTKICH KUPIONYCH BILETÓW -->
+    <section id="historyTab" class="tab-view">
+      <div class="panel">
+        <div class="history-top">
+          <h2>Historia wszystkich kupionych biletów</h2>
+          <button type="button" class="btn-danger" id="clearAllTicketsBtn">Wyczyść historię</button>
+        </div>
+        <div id="fullHistoryList" class="tickets-list"></div>
+      </div>
+    </section>
+
+    <!-- ZAKŁADKA 3: PANEL ADMINA I SKANER QR -->
+    <section id="adminTab" class="tab-view">
+      <div class="grid-2">
+        <div class="panel">
+          <h2>Panel admina — Skaner kodów QR</h2>
+
+          <div class="scanner-box">
+            <div class="video-wrap">
+              <video id="qrVideo" playsinline muted></video>
+              <div class="scanner-reticle" id="scannerReticle" style="display: none;"></div>
+              <div class="scanner-placeholder" id="scannerPlaceholder">
+                Kliknij <strong>„Włącz kamerę”</strong>, aby rozpocząć skanowanie kodu QR biletu.
+              </div>
+            </div>
+
+            <div class="scanner-controls">
+              <button type="button" class="btn-primary" id="startCameraBtn" style="width: auto; margin-top: 0;">
+                Włącz kamerę
+              </button>
+              <button type="button" class="btn-secondary" id="stopCameraBtn" disabled>
+                Wyłącz kamerę
+              </button>
+            </div>
+
+            <div class="scanner-status" id="scannerStatus">
+              Status kamery: wyłączona
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="manualQrInput">Lub wpisz / wklej kod QR / ID biletu do weryfikacji</label>
+            <div style="display: flex; gap: 8px;">
+              <input type="text" id="manualQrInput" placeholder="np. TKT-123456 lub JSON kodu QR" />
+              <button type="button" class="btn-secondary" id="verifyManualBtn">Sprawdź</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>Wynik weryfikacji skanowanego biletu</h2>
+          <div id="scanResultBox">
+            <div class="empty-state">
+              Zeskanuj kod QR kamerą lub wpisz kod po lewej, aby zobaczyć dane biletu i status ważności.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- MODAL WYDRUKU BILETU: AUTOMATYCZNE 20 SEKUND + SZYBKIE RĘCZNE ZAMKNIĘCIE -->
+  <div class="modal-backdrop" id="printModalBackdrop" aria-hidden="true">
+    <div class="print-modal" role="dialog" aria-modal="true" aria-labelledby="printModalTitle">
+      <div class="print-header">
+        <h3 id="printModalTitle">Wydrukowano bilet</h3>
+        <div class="countdown-pill" id="countdownBadge">Zamknięcie za: 20 s</div>
+      </div>
+
+      <div class="progress-track">
+        <div class="progress-fill" id="progressBar"></div>
+      </div>
+
+      <div class="auto-close-note">
+        Po wydrukowaniu czas <strong>odlicza się automatycznie (20 sekund)</strong> i sam zamknie okno po dojściu do 0 s.
+        <strong>Ręcznie możesz też już szybciej zamknąć bilet</strong> (np. po 1 sekundzie) przyciskiem „Zamknij teraz”.
+      </div>
+
+      <div class="printed-paper" id="printedPaperBox"></div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-close-manual" id="closeModalNowBtn">Zamknij teraz</button>
+      </div>
+    </div>
+  </div>
+
+  <canvas id="qrWorkCanvas" style="display: none;"></canvas>
+
+  <script>
+    const STORAGE_KEY = 'kiosk_biletowy_pelna_historia_v2';
+    const AUTO_CLOSE_SECONDS = 20;
+
+    let tickets = loadTickets();
+    let countdownTimer = null;
+    let remainingSec = AUTO_CLOSE_SECONDS;
+
+    // Stan kamery i skanera QR
+    let cameraStream = null;
+    let scanFrameId = null;
+    let barcodeDetector = null;
+    let lastScannedCode = '';
+    let lastScanTimestamp = 0;
+
+    // Elementy DOM
+    const headerTicketCount = document.getElementById('headerTicketCount');
+    const tabButtons = document.querySelectorAll('.tab-btn');
+    const tabViews = document.querySelectorAll('.tab-view');
+
+    const ticketForm = document.getElementById('ticketForm');
+    const recentPreviewList = document.getElementById('recentPreviewList');
+    const fullHistoryList = document.getElementById('fullHistoryList');
+    const clearAllTicketsBtn = document.getElementById('clearAllTicketsBtn');
+
+    const modalBackdrop = document.getElementById('printModalBackdrop');
+    const countdownBadge = document.getElementById('countdownBadge');
+    const progressBar = document.getElementById('progressBar');
+    const printedPaperBox = document.getElementById('printedPaperBox');
+    const closeModalNowBtn = document.getElementById('closeModalNowBtn');
+
+    const qrVideo = document.getElementById('qrVideo');
+    const qrWorkCanvas = document.getElementById('qrWorkCanvas');
+    const scannerReticle = document.getElementById('scannerReticle');
+    const scannerPlaceholder = document.getElementById('scannerPlaceholder');
+    const startCameraBtn = document.getElementById('startCameraBtn');
+    const stopCameraBtn = document.getElementById('stopCameraBtn');
+    const scannerStatus = document.getElementById('scannerStatus');
+    const manualQrInput = document.getElementById('manualQrInput');
+    const verifyManualBtn = document.getElementById('verifyManualBtn');
+    const scanResultBox = document.getElementById('scanResultBox');
+
+    function loadTickets() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        const data = raw ? JSON.parse(raw) : [];
+        return Array.isArray(data) ? data : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function saveTickets() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(tickets));
+    }
+
+    function escapeHtml(val) {
+      return String(val ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    // Przełączanie zakładek (z bezpiecznym zatrzymaniem kamery przy wyjściu z panelu admina)
+    tabButtons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const targetId = btn.dataset.tab;
+        tabButtons.forEach((b) => b.classList.toggle('active', b === btn));
+        tabViews.forEach((view) => view.classList.toggle('active', view.id === targetId));
+
+        if (targetId !== 'adminTab') {
+          stopCamera();
+        }
+      });
+    });
+
+    // Generator kodu QR SVG na podstawie danych biletu
+    function buildQrSvg(payloadText, size = 102) {
+      const modules = 21;
+      const grid = Array.from({ length: modules }, () => Array(modules).fill(false));
+
+      function putFinder(r0, c0) {
+        for (let r = -1; r <= 7; r++) {
+          for (let c = -1; c <= 7; c++) {
+            const rr = r0 + r;
+            const cc = c0 + c;
+            if (rr < 0 || rr >= modules || cc < 0 || cc >= modules) continue;
+            const inside = r >= 0 && r <= 6 && c >= 0 && c <= 6;
+            const core = r >= 2 && r <= 4 && c >= 2 && c <= 4;
+            const frame = r === 0 || r === 6 || c === 0 || c === 6;
+            grid[rr][cc] = inside && (frame || core);
+          }
+        }
+      }
+
+      putFinder(0, 0);
+      putFinder(0, modules - 7);
+      putFinder(modules - 7, 0);
+
+      const safeStr = String(payloadText || 'TICKET');
+      let h = 2166136261;
+      for (let i = 0; i < safeStr.length; i++) {
+        h ^= safeStr.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+      }
+
+      let idx = 0;
+      for (let r = 0; r < modules; r++) {
+        for (let c = 0; c < modules; c++) {
+          if ((r < 8 && c < 8) || (r < 8 && c >= modules - 8) || (r >= modules - 8 && c < 8)) {
+            continue;
+          }
+          h ^= (r * 37 + c * 19 + idx * 127 + safeStr.charCodeAt(idx % safeStr.length));
+          h = Math.imul(h, 16777619);
+          grid[r][c] = ((h >>> ((idx + r + c) % 24)) & 1) === 1;
+          idx++;
+        }
+      }
+
+      let rects = '';
+      for (let r = 0; r < modules; r++) {
+        for (let c = 0; c < modules; c++) {
+          if (grid[r][c]) {
+            rects += `<rect x="${c}" y="${r}" width="1" height="1" fill="#0f172a" />`;
+          }
+        }
+      }
+
+      return `<svg width="${size}" height="${size}" viewBox="-1 -1 ${modules + 2} ${modules + 2}" xmlns="http://www.w3.org/2000/svg" aria-label="Kod QR biletu">
+        <rect x="-1" y="-1" width="${modules + 2}" height="${modules + 2}" fill="#ffffff" />
+        ${rects}
+      </svg>`;
+    }
+
+    function ticketToQrPayload(ticket) {
+      return JSON.stringify({
+        id: ticket.id,
+        passengerName: ticket.passengerName,
+        passengerEmail: ticket.passengerEmail,
+        passengerPhone: ticket.passengerPhone,
+        fromStop: ticket.fromStop,
+        toStop: ticket.toStop,
+        ticketType: ticket.ticketType,
+        passengersCount: ticket.passengersCount,
+        paymentMethod: ticket.paymentMethod,
+        issuedAt: ticket.issuedAt,
+        validUntil: ticket.validUntil,
+        status: ticket.status
+      });
+    }
+
+    function renderTicketCard(ticket) {
+      const qrSvg = buildQrSvg(ticketToQrPayload(ticket), 102);
+      const isValid = ticket.status === 'Ważny';
+      const statusBadge = isValid
+        ? `<span class="status-pill status-valid">Ważny</span>`
+        : `<span class="status-pill status-invalid">${escapeHtml(ticket.status)}</span>`;
+
+      return `
+        <article class="ticket-card">
+          <div class="qr-box">${qrSvg}</div>
+          <div>
+            <div class="ticket-head">
+              <span class="ticket-id">Bilet #${escapeHtml(ticket.id)}</span>
+              <div>${statusBadge}</div>
+            </div>
+            <div class="ticket-details">
+              <span><strong>Pasażer:</strong> ${escapeHtml(ticket.passengerName)}</span>
+              <span><strong>E-mail:</strong> ${escapeHtml(ticket.passengerEmail)}</span>
+              <span><strong>Telefon:</strong> ${escapeHtml(ticket.passengerPhone)}</span>
+              <span><strong>Trasa:</strong> ${escapeHtml(ticket.fromStop)} → ${escapeHtml(ticket.toStop)}</span>
+              <span><strong>Rodzaj biletu:</strong> ${escapeHtml(ticket.ticketType)}</span>
+              <span><strong>Liczba osób:</strong> ${escapeHtml(ticket.passengersCount)}</span>
+              <span><strong>Płatność:</strong> ${escapeHtml(ticket.paymentMethod)}</span>
+              <span><strong>Data zakupu:</strong> ${escapeHtml(ticket.issuedAt)}</span>
+              <span><strong>Ważny do:</strong> ${escapeHtml(ticket.validUntil)}</span>
+              <span><strong>Kod:</strong> ${escapeHtml(ticket.id)}</span>
+            </div>
+            <div class="ticket-actions">
+              <button type="button" class="btn-secondary" onclick="openPrintModal('${escapeHtml(ticket.id)}')">
+                Pokaż wydruk (20 s)
+              </button>
+              <button type="button" class="btn-secondary" onclick="verifyTicketByRaw('${escapeHtml(ticket.id)}')">
+                Zweryfikuj w panelu admina
+              </button>
+            </div>
+          </div>
+        </article>
+      `;
+    }
+
+    function renderAllLists() {
+      headerTicketCount.textContent = `Kupionych biletów: ${tickets.length}`;
+
+      if (!tickets.length) {
+        const emptyHtml = `
+          <div class="empty-state">
+            Brak kupionych biletów. Kup pierwszy bilet w formularzu, aby pojawił się w historii.
+          </div>
+        `;
+        recentPreviewList.innerHTML = emptyHtml;
+        fullHistoryList.innerHTML = emptyHtml;
+        return;
+      }
+
+      recentPreviewList.innerHTML = tickets.slice(0, 3).map(renderTicketCard).join('');
+      fullHistoryList.innerHTML = tickets.map(renderTicketCard).join('');
+    }
+
+    // Automatyczne odliczanie 20s od wydruku + możliwość szybkiego ręcznego zamknięcia
+    function clearCountdown() {
+      if (countdownTimer !== null) {
+        clearInterval(countdownTimer);
+        countdownTimer = null;
+      }
+    }
+
+    function closePrintModal() {
+      clearCountdown();
+      modalBackdrop.classList.remove('active');
+      modalBackdrop.setAttribute('aria-hidden', 'true');
+    }
+
+    function renderCountdownState() {
+      countdownBadge.textContent = `Zamknięcie za: ${remainingSec} s`;
+      const ratio = Math.max(0, (remainingSec / AUTO_CLOSE_SECONDS) * 100);
+      progressBar.style.width = `${ratio}%`;
+    }
+
+    function openPrintModal(ticketId) {
+      const ticket = tickets.find((t) => t.id === ticketId);
+      if (!ticket) return;
+
+      printedPaperBox.innerHTML = `
+        <div class="printed-top">
+          <span>BILET #${escapeHtml(ticket.id)}</span>
+          <span>${escapeHtml(ticket.issuedAt)}</span>
+        </div>
+        <div class="printed-body">
+          <div class="printed-qr">${buildQrSvg(ticketToQrPayload(ticket), 110)}</div>
+          <div class="printed-fields">
+            <div><strong>Pasażer:</strong> ${escapeHtml(ticket.passengerName)}</div>
+            <div><strong>E-mail:</strong> ${escapeHtml(ticket.passengerEmail)}</div>
+            <div><strong>Telefon:</strong> ${escapeHtml(ticket.passengerPhone)}</div>
+            <div><strong>Trasa:</strong> ${escapeHtml(ticket.fromStop)} → ${escapeHtml(ticket.toStop)}</div>
+            <div><strong>Rodzaj:</strong> ${escapeHtml(ticket.ticketType)}</div>
+            <div><strong>Osób:</strong> ${escapeHtml(ticket.passengersCount)}</div>
+            <div><strong>Płatność:</strong> ${escapeHtml(ticket.paymentMethod)}</div>
+            <div><strong>Ważny do:</strong> ${escapeHtml(ticket.validUntil)}</div>
+          </div>
+        </div>
+      `;
+
+      clearCountdown();
+      remainingSec = AUTO_CLOSE_SECONDS;
+      renderCountdownState();
+
+      modalBackdrop.classList.add('active');
+      modalBackdrop.setAttribute('aria-hidden', 'false');
+
+      countdownTimer = setInterval(() => {
+        remainingSec -= 1;
+        renderCountdownState();
+        if (remainingSec <= 0) {
+          closePrintModal();
+        }
+      }, 1000);
+    }
+
+    window.openPrintModal = openPrintModal;
+
+    ticketForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      const now = new Date();
+      const validUntilDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+      const randNum = Math.floor(100000 + Math.random() * 900000);
+      const id = `TKT-${randNum}`;
+
+      const ticket = {
+        id,
+        passengerName: document.getElementById('passengerName').value.trim(),
+        passengerEmail: document.getElementById('passengerEmail').value.trim(),
+        passengerPhone: document.getElementById('passengerPhone').value.trim(),
+        fromStop: document.getElementById('fromStop').value.trim(),
+        toStop: document.getElementById('toStop').value.trim(),
+        ticketType: document.getElementById('ticketType').value,
+        passengersCount: document.getElementById('passengersCount').value,
+        paymentMethod: document.getElementById('paymentMethod').value,
+        issuedAt: now.toLocaleString('pl-PL'),
+        validUntil: validUntilDate.toLocaleString('pl-PL'),
+        status: 'Ważny'
+      };
+
+      tickets.unshift(ticket);
+      saveTickets();
+      renderAllLists();
+
+      ticketForm.reset();
+      document.getElementById('passengersCount').value = '1';
+
+      // Od razu po wydruku startuje automatyczne odliczanie 20 sekund
+      openPrintModal(ticket.id);
+    });
+
+    closeModalNowBtn.addEventListener('click', closePrintModal);
+
+    clearAllTicketsBtn.addEventListener('click', () => {
+      tickets = [];
+      saveTickets();
+      renderAllLists();
+    });
+
+    // Weryfikacja zeskanowanego lub wpisanego kodu QR w panelu admina
+    function handleDecodedQr(rawText) {
+      const trimmed = String(rawText || '').trim();
+      if (!trimmed) return;
+
+      const nowMs = Date.now();
+      if (trimmed === lastScannedCode && nowMs - lastScanTimestamp < 1500) {
+        return;
+      }
+      lastScannedCode = trimmed;
+      lastScanTimestamp = nowMs;
+
+      let parsedObj = null;
+      try {
+        parsedObj = JSON.parse(trimmed);
+      } catch {
+        parsedObj = null;
+      }
+
+      const candidateId = parsedObj && parsedObj.id ? String(parsedObj.id).trim() : trimmed;
+      const foundTicket = tickets.find(
+        (t) => t.id.toLowerCase() === candidateId.toLowerCase() || ticketToQrPayload(t) === trimmed
+      );
+
+      if (foundTicket) {
+        scannerStatus.textContent = `Rozpoznano kod QR biletu #${foundTicket.id} (${foundTicket.status}).`;
+        scanResultBox.innerHTML = `
+          <div style="margin-bottom: 12px;">
+            <span class="status-pill status-valid">Bilet zweryfikowany — ${escapeHtml(foundTicket.status)}</span>
+          </div>
+          <table>
+            <tr><th>ID / Kod biletu</th><td>${escapeHtml(foundTicket.id)}</td></tr>
+            <tr><th>Pasażer</th><td>${escapeHtml(foundTicket.passengerName)}</td></tr>
+            <tr><th>E-mail</th><td>${escapeHtml(foundTicket.passengerEmail)}</td></tr>
+            <tr><th>Telefon</th><td>${escapeHtml(foundTicket.passengerPhone)}</td></tr>
+            <tr><th>Trasa</th><td>${escapeHtml(foundTicket.fromStop)} → ${escapeHtml(foundTicket.toStop)}</td></tr>
+            <tr><th>Rodzaj biletu</th><td>${escapeHtml(foundTicket.ticketType)}</td></tr>
+            <tr><th>Liczba osób</th><td>${escapeHtml(foundTicket.passengersCount)}</td></tr>
+            <tr><th>Płatność</th><td>${escapeHtml(foundTicket.paymentMethod)}</td></tr>
+            <tr><th>Data zakupu</th><td>${escapeHtml(foundTicket.issuedAt)}</td></tr>
+            <tr><th>Ważny do</th><td>${escapeHtml(foundTicket.validUntil)}</td></tr>
+          </table>
+        `;
+      } else {
+        scannerStatus.textContent = `Odczytano kod: ${trimmed} (brak w bazie kupionych biletów)`;
+        scanResultBox.innerHTML = `
+          <div style="margin-bottom: 12px;">
+            <span class="status-pill status-invalid">Nieznany lub nieważny kod</span>
+          </div>
+          <table>
+            <tr><th>Odczytana wartość</th><td>${escapeHtml(trimmed)}</td></tr>
+            <tr><th>Status</th><td>Nie znaleziono pasującego biletu w historii</td></tr>
+          </table>
+        `;
+      }
+    }
+
+    function verifyTicketByRaw(rawValue) {
+      document.querySelector('[data-tab="adminTab"]').click();
+      manualQrInput.value = rawValue;
+      handleDecodedQr(rawValue);
+    }
+    window.verifyTicketByRaw = verifyTicketByRaw;
+
+    verifyManualBtn.addEventListener('click', () => {
+      handleDecodedQr(manualQrInput.value);
+    });
+
+    manualQrInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleDecodedQr(manualQrInput.value);
+      }
+    });
+
+    // Naprawiona obsługa kamery i dekodowania QR (BarcodeDetector + jsQR na klatkach z canvas)
+    async function initBarcodeDetector() {
+      if ('BarcodeDetector' in window) {
+        try {
+          const formats = await window.BarcodeDetector.getSupportedFormats();
+          if (formats.includes('qr_code')) {
+            barcodeDetector = new window.BarcodeDetector({ formats: ['qr_code'] });
+            return;
+          }
+        } catch {
+          barcodeDetector = null;
+        }
+      }
+      barcodeDetector = null;
+    }
+
+    function stopCamera() {
+      if (scanFrameId !== null) {
+        cancelAnimationFrame(scanFrameId);
+        scanFrameId = null;
+      }
+      if (cameraStream) {
+        cameraStream.getTracks().forEach((track) => track.stop());
+        cameraStream = null;
+      }
+      qrVideo.srcObject = null;
+      qrVideo.classList.remove('active');
+      scannerReticle.style.display = 'none';
+      scannerPlaceholder.style.display = 'block';
+      startCameraBtn.disabled = false;
+      stopCameraBtn.disabled = true;
+      scannerStatus.textContent = 'Status kamery: wyłączona';
+    }
+
+    async function scanVideoLoop() {
+      if (!cameraStream || qrVideo.readyState < 2) {
+        scanFrameId = requestAnimationFrame(scanVideoLoop);
+        return;
+      }
+
+      const width = qrVideo.videoWidth;
+      const height = qrVideo.videoHeight;
+
+      if (width > 0 && height > 0) {
+        // 1. Próba przez natywny BarcodeDetector (jeśli dostępny)
+        if (barcodeDetector) {
+          try {
+            const barcodes = await barcodeDetector.detect(qrVideo);
+            if (barcodes && barcodes.length > 0 && barcodes[0].rawValue) {
+              handleDecodedQr(barcodes[0].rawValue);
+            }
+          } catch {
+            // Ignorujemy pojedynczy błąd klatki i próbujemy przez jsQR
+          }
+        }
+
+        // 2. Niezawodne dekodowanie klatki przez jsQR z canvas
+        if (typeof window.jsQR === 'function') {
+          const targetW = Math.min(width, 640);
+          const targetH = Math.round((height / width) * targetW);
+          qrWorkCanvas.width = targetW;
+          qrWorkCanvas.height = targetH;
+
+          const ctx = qrWorkCanvas.getContext('2d', { willReadFrequently: true });
+          ctx.drawImage(qrVideo, 0, 0, targetW, targetH);
+          const imageData = ctx.getImageData(0, 0, targetW, targetH);
+
+          const qrResult = window.jsQR(imageData.data, imageData.width, imageData.height, {
+            inversionAttempts: 'attemptBoth'
+          });
+
+          if (qrResult && qrResult.data) {
+            handleDecodedQr(qrResult.data);
+          }
+        }
+      }
+
+      scanFrameId = requestAnimationFrame(scanVideoLoop);
+    }
+
+    startCameraBtn.addEventListener('click', async () => {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        scannerStatus.textContent = 'Błąd: przeglądarka nie obsługuje dostępu do kamery (wymagane HTTPS lub localhost).';
+        return;
+      }
+
+      stopCamera();
+      scannerStatus.textContent = 'Uruchamianie kamery...';
+      await initBarcodeDetector();
+
+      const constraintsList = [
+        { video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false },
+        { video: { facingMode: 'environment' }, audio: false },
+        { video: true, audio: false }
+      ];
+
+      let stream = null;
+      for (const constraints of constraintsList) {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia(constraints);
+          if (stream) break;
+        } catch {
+          stream = null;
+        }
+      }
+
+      if (!stream) {
+        scannerStatus.textContent = 'Nie udało się włączyć kamery. Sprawdź uprawnienia w przeglądarce lub użyj pola ręcznego.';
+        return;
+      }
+
+      cameraStream = stream;
+      qrVideo.srcObject = stream;
+      qrVideo.classList.add('active');
+      scannerPlaceholder.style.display = 'none';
+      scannerReticle.style.display = 'block';
+      startCameraBtn.disabled = true;
+      stopCameraBtn.disabled = false;
+
+      try {
+        await qrVideo.play();
+      } catch {
+        // Niektóre przeglądarki odpalają play() automatycznie po loadedmetadata
+      }
+
+      scannerStatus.textContent = 'Kamera aktywna — skieruj kod QR na obiektyw.';
+      scanFrameId = requestAnimationFrame(scanVideoLoop);
+    });
+
+    stopCameraBtn.addEventListener('click', stopCamera);
+
+    renderAllLists();
+  </script>
+</body>
+</html>
