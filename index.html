@@ -629,7 +629,7 @@
                         <span id="lbl-paper-print-btn">Bilet papierowy wydrukowany / Drukuj papier</span>
                     </button>
                     <div id="paper-print-disabled-note" class="hidden text-xs font-bold text-rose-300 bg-rose-950/60 border border-rose-500/40 rounded-xl py-2.5 px-3">
-                        🚫 Drukowanie biletu papierowego jest obecnie wyłączone przez administratora.
+                        🚫 Drukowanie biletu papierowego jest obecnie niedostępne.
                     </div>
                     <div id="paper-print-requested-badge" class="hidden text-xs font-black text-amber-300 bg-amber-500/15 border border-amber-500/40 rounded-xl py-2.5 px-3">
                         🖨️ Wysłano zgłoszenie wydruku papierowego do Panelu Admina.
@@ -678,14 +678,12 @@
                     <span id="lbl-cash-inserted" class="text-slate-400 font-bold">Wrzucono (podgląd):</span>
                     <span id="cash-inserted-display" class="font-mono font-black text-sky-400">0,00 €</span>
                 </div>
-                <div class="flex items-center justify-between text-xs">
-                    <span id="lbl-cash-change" class="text-slate-400 font-bold">Reszta:</span>
-                    <span id="cash-change-display" class="font-mono font-black text-emerald-400">0,00 €</span>
+                <div class="flex items-center justify-between 
+                    
                 </div>
                 <div class="grid grid-cols-4 gap-1.5 pt-1">
-                    <button type="button" onclick="addCashPreview(5)" class="py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-extrabold text-white cursor-pointer">+5 €</button>
-                    <button type="button" onclick="addCashPreview(10)" class="py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-extrabold text-white cursor-pointer">+10 €</button>
-                    <button type="button" onclick="addCashPreview(20)" class="py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-extrabold text-white cursor-pointer">+20 €</button>
+                    <button type="button" onclick="addCashPreview(5)" class="py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-extrabold text-white cursor-poi
+                    
                     <button id="btn-cash-reset" type="button" onclick="resetCashPreview()" class="py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-bold text-slate-400 cursor-pointer">Reset</button>
                 </div>
             </div>
