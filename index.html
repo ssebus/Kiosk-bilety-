@@ -636,7 +636,7 @@
                     </div>
 
                     <button type="button" onclick="resetToNewOrder()" class="w-full py-4 rounded-2xl bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-black text-base shadow-lg cursor-pointer">
-                        🏠 <span id="lbl-new-ticket">Kup kolejny bilet</span>
+                        🏠 <span id="lbl-new-ticket"> Przejdź do ekranu głównego</span>
                     </button>
                 </div>
             </div>
@@ -674,18 +674,16 @@
             </div>
 
             <div class="bg-slate-950 border border-slate-800 rounded-2xl p-3 space-y-2">
-                <div class="flex items-center justify-between text-xs">
-                    <span id="lbl-cash-inserted" class="text-slate-400 font-bold">Wrzucono (podgląd):</span>
-                    <span id="cash-inserted-display" class="font-mono font-black text-sky-400">0,00 €</span>
-                </div>
+                <div class="flex items-center justify-between text-
+                
                 <div class="flex items-center justify-between 
                     
                 </div>
                 <div class="grid grid-cols-4 gap-1.5 pt-1">
                     <button type="button" onclick="addCashPreview(5)" class="py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-extrabold text-white cursor-poi
                     
-                    <button id="btn-cash-reset" type="button" onclick="resetCashPreview()" class="py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-bold text-slate-400 cursor-pointer">Reset</button>
-                </div>
+        
+                </div
             </div>
 
             <div class="flex gap-2.5 pt-1">
@@ -1378,7 +1376,10 @@
                     per15: "/ 15m",
                     per30: "/ 30m",
                     per60: "/ 1h",
-                    per1: "/ 1m",
+                    per0: "/ 0m",
+                    per120: "/ 120m,
+
+
                     lockedText: "Po 5 min",
                     freeSlot: "✓ Wolne (5m)",
                     payWillBe: "Zapłacisz:",
@@ -1403,8 +1404,7 @@
                     cashChange: "Reszta:",
                     cashMissing: "Brakuje",
                     cashReset: "Reset",
-                    cashCancel: "Anuluj płatność",
-                    cashConfirm: "✓ Potwierdź gotówkę",
+                    cashCancel: 
                     nfcInitial: "Zbliż kartę do ikony NFC u góry 🔼",
                     nfcProcessing: "Przetwarzanie płatności...",
                     nfcSuccess: "ZAPŁACONO!",
@@ -1504,7 +1504,7 @@
                     per15: "/ 15m",
                     per30: "/ 30m",
                     per60: "/ 1h",
-                    per1: "/ 1m",
+                    per1: "/ 0m",
                     lockedText: "> 5 Min.",
                     freeSlot: "✓ Frei (5m)",
                     payWillBe: "Preis:",
@@ -1525,12 +1525,11 @@
                     cashSub: "Scheine oder Münzen einwerfen — Bargeld-Klick wird live im Admin-Panel angezeigt.",
                     cashWaiting: "Warte auf Bargeldeinwurf und Bestätigung...",
                     cashPaid: "✓ BEZAHLT! Weiter zum QR-Code...",
-                    cashInserted: "Eingeworfen (Vorschau):",
-                    cashChange: "Wechselgeld:",
-                    cashMissing: "Fehlt",
-                    cashReset: "Zurücksetzen",
+                
+                
+                    
                     cashCancel: "Zahlung abbrechen",
-                    cashConfirm: "✓ Bargeld bestätigen",
+                
                     nfcInitial: "Karte oben an das NFC-Symbol halten 🔼",
                     nfcProcessing: "Zahlung wird verarbeitet...",
                     nfcSuccess: "BEZAHLT!",
